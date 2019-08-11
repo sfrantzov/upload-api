@@ -10,6 +10,14 @@ class WellcomeController extends Controller
      */
     public function index()
     {
+        return view('async');
+    }
+
+    /**
+     * @return \Illuminate\View\View
+     */
+    public function sync()
+    {
         return view('upload');
     }
 }

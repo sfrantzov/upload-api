@@ -43,7 +43,8 @@ You can configure application from .env file
 
 ### to run application
 
-- http://localhost:8080 
+- http://localhost:8080 (async upload) - one file one call
+- http://localhost:8080/sync (sync upload) - all files in one call
 
 nginx has port map to localhost 8080 port.
 This is a simple form to upload files. 

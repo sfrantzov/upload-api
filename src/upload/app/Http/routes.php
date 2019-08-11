@@ -12,6 +12,8 @@
 */
 
 $app->get('/', 'WellcomeController@index');
+$app->get('/sync', 'WellcomeController@sync');
+
 $app->group(['prefix' => env('API_VERSION'), 'namespace' => 'App\Http\Controllers'], function ($app) {
     $app->post('upload', ['middleware' => 'apikey','uses' => 'UploadController@upload']);
     $app->get('file/{uuid}', 'UploadController@download');

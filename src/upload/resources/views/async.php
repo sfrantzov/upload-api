@@ -15,7 +15,7 @@
         <h2>Test Files Upload</h2>
     </div>
     <div class="row">
-        <a href="<?php echo \Illuminate\Support\Facades\URL::to('/')?>">Async Version</a>
+        <a href="<?php echo \Illuminate\Support\Facades\URL::to('/sync')?>">Sync Version</a>
     </div>
     <div class="row">
         <div class="alert alert-success d-none" id="success">
@@ -32,48 +32,62 @@
                 <label for="filesToUpload">Select images to upload</label>
                 <input type="hidden" name="api_key" value="EPo1vxXzgDrNfUhe" id="api_key">
                 <input type="file" class="form-control" id="filesToUpload" name="filesToUpload"
-                       multiple accept="<?php echo env('FILE_ALLOWED_TYPES_SITE') ?>"
+                       multiple
+                       accept="<?php echo env('FILE_ALLOWED_TYPES_SITE') ?>"
                        data-file-size="<?php echo \App\Helpers\Helper::fileUploadMaxSize() ?>"
-                       data-post-size="<?php echo \App\Helpers\Helper::postMaxSize() ?>"
                 >
                 <small id="fileToUploadHelp" class="form-text text-muted">Accepted are only images with extensions: <?php echo env('FILE_ALLOWED_TYPES') ?></small>
             </div>
-            <button type="submit" class="btn btn-primary d-none" id="submit">Upload</button>
         </form>
     </div>
 </div>
 <script>
-    var data = [];
     $(function(){
         $("#filesToUpload").change(function() {
-            $("#submit").addClass('d-none');
+            $("#error").addClass('d-none');
+            $("#errorText").html('');
+            $("#success").addClass('d-none');
+            $("#successText").html('');
+            $("#files").html('');
+
             filesToUpload = $("#filesToUpload");
-            data = {};
-            let postSize = 0;
             let files = filesToUpload.get(0).files;
             for (let i = 0; i < files.length; i++) {
                 if(files[i].size > filesToUpload.data('file-size')){
                     errorMessage("File " + files[i].name + " is too big");
-                    this.value = "";
-                    data = {};
-                    return;
+                    continue;
                 }
-                postSize += files[i].size;
-                processFile(files[i], i, files.length);
-                if(postSize > filesToUpload.data('post-size')){
-                    errorMessage("Post size is too big");
-                    this.value = "";
-                    data = {};
-                    return;
-                }
+                processFile(files[i]);
             }
-            $("#error").addClass('d-none');
         });
+    });
 
+    function errorMessage(message) {
+        $("#errorText").append('<div>' + message + '</div>');
+        $("#error").removeClass('d-none');
+    }
 
-        $("#idForm").submit(function(e) {
-            e.preventDefault();
-            var form = $(this);
+    function readFileAsync(file) {
+        return new Promise((resolve, reject) => {
+            let reader = new FileReader();
+            reader.onload = () => {
+                resolve(reader.result);
+            };
+            reader.onerror = reject;
+            reader.readAsBinaryString(file);
+        })
+    }
+
+    async function processFile(file) {
+        try {
+            let binaryData = await readFileAsync(file);
+            let base64String = window.btoa(binaryData);
+            var data = [{
+                fileName: file.name,
+                fileContent: base64String
+            }];
+
+            var form = $("#idForm");
             var url = form.attr('action');
 
             $.ajax({
@@ -96,62 +110,17 @@
                                 newHTML += '<div>File ' + result.files[key].name + ' skipped (validation failed)</div>';
                             }
                         });
-                        $("#files").html(newHTML);
+                        $("#files").append(newHTML);
                         $("#success").removeClass('d-none');
-                        $("#error").addClass('d-none');
-                        $("#filesToUpload").val('');
-                        data = {};
-                        $("#submit").addClass('d-none');
-
                     } else {
                         errorMessage(result.message)
                     }
                 }
             });
-        });
-    });
 
-    function errorMessage(message) {
-        $("#errorText").html(message);
-        $("#error").removeClass('d-none');
-        $("#success").addClass('d-none');
-    }
-
-    function readFileAsync(file) {
-        return new Promise((resolve, reject) => {
-            let reader = new FileReader();
-            reader.onload = () => {
-                resolve(reader.result);
-            };
-            reader.onerror = reject;
-            reader.readAsBinaryString(file);
-        })
-    }
-
-    async function processFile(file, index, filesCount) {
-        try {
-            let binaryData = await readFileAsync(file);
-            let base64String = window.btoa(binaryData);
-            data[index] = {
-                fileName: file.name,
-                fileContent: base64String
-            };
-            if (count(data) === parseInt(filesCount)) {
-                $("#submit").removeClass('d-none');
-            }
         } catch (err) {
             console.log(err);
         }
-    }
-
-    function count(array){
-        var c = 0;
-        for(i in array) {
-            if (array[i] != undefined) {
-                c++;
-            }
-        }
-        return c;
     }
 </script>
 </body>
