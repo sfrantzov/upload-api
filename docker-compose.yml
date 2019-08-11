@@ -1,0 +1,50 @@
+version: '2'
+services:
+
+    ##
+    # File Upload Service
+    ##
+    fpm:
+        build: docker/upload/php-fpm
+        volumes_from:
+            - upload
+        volumes:
+            - $SSH_AUTH_SOCK:/ssh-agent
+        links:
+            - db
+        expose:
+            - 9000
+
+    nginx:
+        build: docker/upload/nginx
+        volumes_from:
+            - upload
+        volumes:
+            - $SSH_AUTH_SOCK:/ssh-agent
+            - ./docker/upload/nginx/nginx.conf:/etc/nginx/nginx.conf
+        links:
+            - fpm
+            - db
+        ports:
+            - 8080:80
+
+    db:
+        build: docker/upload/database
+        environment:
+            - MYSQL_ROOT_PASSWORD=password
+            - MYSQL_DATABASE=file_upload
+            - MYSQL_USER=upload
+            - MYSQL_PASSWORD=password
+        ports:
+            - 6666:3306
+
+    ##
+    # Source containers
+
+
+    ##
+    upload:
+        image: nginx:stable
+        volumes:
+            - ./src/upload:/var/www/html
+        command: "true"
