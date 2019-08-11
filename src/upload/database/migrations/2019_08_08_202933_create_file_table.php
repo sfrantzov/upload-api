@@ -19,6 +19,7 @@ class CreateFileTable extends Migration
             $table->string('extension', 255);
             $table->timestamps();
             $table->index('name');
+            $table->index('uuid');
         });
     }
 

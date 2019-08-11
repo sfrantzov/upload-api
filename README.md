@@ -15,11 +15,15 @@ returns JSON with links to download uploaded files
 {"success":0,"message":"Unauthorized"}
 
 - Header is required
-API-KEY: EPo1vxXzgDrNfUhe1 (from .env)
+API-KEY: EPo1vxXzgDrNfUhe (from .env)
 
 ### create test docker containers
 
 - make up / docker-compose up -d / docker-compose build and after make up
+
+### install components with composer
+
+- make install
 
 ### run test container (docker container)
 
