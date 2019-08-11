@@ -99,8 +99,11 @@ class UploadController extends Controller
         }
 
         foreach ($files as $remoteFile) {
-            if (!isset($remoteFile['fileName'])
-                || !isset($remoteFile['fileContent'])) {
+            $validator = \Validator::make($remoteFile, [
+                'fileName' => 'required',
+                'fileContent' => 'required'
+            ]);
+            if ($validator->fails()) {
                 throw new \Exception('Invalid request');
             }
         }

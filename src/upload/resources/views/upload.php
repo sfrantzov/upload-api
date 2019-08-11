@@ -16,14 +16,14 @@
     </div>
     <div class="row">
         <div class="alert alert-success d-none" id="success">
-            <strong>Success!</strong><span id="successText">Indicates a successful or positive action.</span>
+            <strong>Success!</strong> <span id="successText">Indicates a successful or positive action.</span>
             <div id="files">
             </div>
         </div>
         <div class="alert alert-danger d-none" id="error">
-            <strong>Error!</strong><span id="errorText">Indicates a dangerous or potentially negative action.</span></div>
+            <strong>Error!</strong> <span id="errorText">Indicates a dangerous or potentially negative action.</span></div>
     </div>
-    <form action="/api/v1/upload" method="post" enctype="multipart/form-data" id="idForm">
+    <form action="<?php echo \Illuminate\Support\Facades\URL::to('/api/v1/upload')?>" method="post" enctype="multipart/form-data" id="idForm">
         <div class="form-group">
             <label for="exampleInputEmail1">Select images to upload</label>
             <input type="hidden" name="api_key" value="EPo1vxXzgDrNfUhe" id="api_key">
@@ -34,43 +34,28 @@
             >
             <small id="fileToUploadHelp" class="form-text text-muted">Accepted are only images with extensions: <?php echo env('FILE_ALLOWED_TYPES') ?></small>
         </div>
-        <button type="submit" class="btn btn-primary" id="submit">Upload</button>
+        <button type="submit" class="btn btn-primary d-none" id="submit">Upload</button>
     </form>
-</div>
-
-</div>
-
 </div>
 <script>
     var data = [];
     $(function(){
-        $("#filesToUpload").change(function(e) {
+        $("#filesToUpload").change(function() {
+            $("#submit").addClass('d-none');
+            filesToUpload = $("#filesToUpload");
             data = {};
             let postSize = 0;
-            let files = $("#filesToUpload").get(0).files;
+            let files = filesToUpload.get(0).files;
             for (let i = 0; i < files.length; i++) {
-                if(files[i].size > $("#filesToUpload").data('file-size')){
+                if(files[i].size > filesToUpload.data('file-size')){
                     errorMessage("File " + files[i].name + " is too big");
                     this.value = "";
                     data = {};
                     return;
-                };
-
+                }
                 postSize += files[i].size;
-
-                let reader = new FileReader();
-                reader.fileName = files[i].name;
-                reader.readAsBinaryString(files[i]);
-                reader.onload = function (){
-                    let binaryData = reader.result;
-                    let base64String = window.btoa(binaryData);
-                    data[i] = {
-                        fileName: reader.fileName,
-                        fileContent: base64String
-                    };
-
-                };
-                if(postSize > $("#filesToUpload").data('post-size')){
+                processFile(files[i], i, files.length);
+                if(postSize > filesToUpload.data('post-size')){
                     errorMessage("Post size is too big");
                     this.value = "";
                     data = {};
@@ -93,25 +78,28 @@
                 processData: false,
                 contentType: "application/json; charset=UTF-8",
                 headers: {"API-KEY": $("#api_key").val()},
-                success: function(data)
+                success: function(result)
                 {
-                    if (data.success == 1) {
-                        $("#successText").html(data.message);
+                    if (parseInt(result.success) === 1) {
+                        $("#successText").html(result.message);
 
                         var newHTML = '';
-                        $.each(data.files, function(key) {
-                            if (data.files[key].url) {
-                                newHTML += '<div>File ' + data.files[key].name + ' is stored with download link <a href="' + data.files[key].url + '">' + data.files[key].url + '</a></div>';
+                        $.each(result.files, function(key) {
+                            if (result.files[key].url) {
+                                newHTML += '<div>File ' + result.files[key].name + ' is stored with download link <a href="' + result.files[key].url + '">' + result.files[key].url + '</a></div>';
                             } else {
-                                newHTML += '<div>File ' + data.files[key].name + ' skipped (validation failed)</div>';
+                                newHTML += '<div>File ' + result.files[key].name + ' skipped (validation failed)</div>';
                             }
                         });
                         $("#files").html(newHTML);
                         $("#success").removeClass('d-none');
                         $("#error").addClass('d-none');
+                        $("#filesToUpload").val('');
+                        data = {};
+                        $("#submit").addClass('d-none');
 
                     } else {
-                        errorMessage(data.message)
+                        errorMessage(result.message)
                     }
                 }
             });
@@ -122,6 +110,43 @@
         $("#errorText").html(message);
         $("#error").removeClass('d-none');
         $("#success").addClass('d-none');
+    }
+
+    function readFileAsync(file) {
+        return new Promise((resolve, reject) => {
+            let reader = new FileReader();
+            reader.onload = () => {
+                resolve(reader.result);
+            };
+            reader.onerror = reject;
+            reader.readAsBinaryString(file);
+        })
+    }
+
+    async function processFile(file, index, filesCount) {
+        try {
+            let binaryData = await readFileAsync(file);
+            let base64String = window.btoa(binaryData);
+            data[index] = {
+                fileName: file.name,
+                fileContent: base64String
+            };
+            if (count(data) === parseInt(filesCount)) {
+                $("#submit").removeClass('d-none');
+            }
+        } catch (err) {
+            console.log(err);
+        }
+    }
+
+    function count(array){
+        var c = 0;
+        for(i in array) {
+            if (array[i] != undefined) {
+                c++;
+            }
+        }
+        return c;
     }
 </script>
 </body>
